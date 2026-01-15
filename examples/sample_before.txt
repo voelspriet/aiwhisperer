@@ -1,0 +1,41 @@
+INVESTIGATION REPORT - CONFIDENTIAL
+
+Date: 14 March 2024
+Case Officer: Detective Jan de Vries
+Reference: 2024/INV/0847
+
+SUMMARY OF EVENTS
+
+On 16 October 2023, officers arrested Johannes van der Berg at Stationsplein 42, Rotterdam.
+Van der Berg was found in possession of documentation linking him to Marcus Johnson,
+a known associate operating from Brussels.
+
+Financial records show transfers from Van der Berg's account (IBAN: NL91 ABNA 0417 1643 00)
+to Meridian Holdings Ltd, totaling EUR 2.4 million between March and September 2023.
+
+WITNESS STATEMENT
+
+Maria Petrova (+31 6 12345678) confirmed she observed Van der Berg meeting with
+Johnson at Hotel Krasnapolsky, Amsterdam on 3 separate occasions:
+- 12 March 2023
+- 28 May 2023
+- 14 September 2023
+
+Ms. Petrova's statement was corroborated by security footage and her colleague
+Sophie Bakker (sophie.bakker@example.com), who was present at the May meeting.
+
+VEHICLE INFORMATION
+
+Van der Berg was driving a BMW X5 (license plate: XX-123-YY) registered to
+his company address at Keizersgracht 221, Amsterdam.
+
+Johnson arrived in a Mercedes E-Class, traced to a rental company in Antwerp.
+
+RECOMMENDATIONS
+
+Further investigation into Meridian Holdings Ltd recommended.
+Company registered in Cyprus, beneficial owner unknown.
+
+Contact person: Inspector R. Detollenaere
+Phone: 052/26.08.60
+Email: r.detollenaere@police.example.be

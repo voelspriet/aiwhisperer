@@ -1,5 +1,9 @@
 # AIWhisperer
 
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![License: CC0](https://img.shields.io/badge/license-CC0-green.svg)](https://creativecommons.org/publicdomain/zero/1.0/)
+[![Version](https://img.shields.io/badge/version-0.3.0-orange.svg)](https://github.com/voelspriet/aiwhisperer/releases)
+
 **Whisper your documents to AI—with reduced risk of exposing sensitive data.**
 
 > *"4,713 pages. An experienced researcher would need five days to build a timeline. I did it in 20 minutes, during a coffee break."*
