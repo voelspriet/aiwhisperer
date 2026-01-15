@@ -1,20 +1,28 @@
 # DocSanitizer
 
-**Let AI analyze your confidential documents—without leaking the data.**
+**A complete pipeline for analyzing confidential documents with AI—without leaking the data.**
 
 > *"4,713 pages. An experienced researcher would need five days to build a timeline. I did it in 20 minutes, during a coffee break."*
 
 ## What This Tool Does
 
-DocSanitizer lets you use AI to analyze sensitive documents (criminal investigations, medical records, legal files) **without exposing the actual data**.
+DocSanitizer is a **complete workflow solution** for processing massive confidential documents (criminal investigations, medical records, legal files) with AI **without exposing the actual data**.
 
-**The workflow:**
+**The complete pipeline:**
+
+```
+170 MB PDF → Split into parts → OCR to text → Sanitize → Upload to AI → Download analysis → Decode
+```
+
 1. **Convert** - Extract text from PDFs (with OCR for scanned pages)
-2. **Encode** - Replace all names, phones, addresses with placeholders (`John Smith` → `PERSON_001`)
-3. **Analyze** - Send the sanitized text to AI (NotebookLM, etc.) for analysis
-4. **Decode** - The tool automatically replaces placeholders back to real names in the AI output
+2. **Split** - Automatically split large files into manageable chunks (500 pages each)
+3. **Encode** - Replace all names, phones, addresses with placeholders (`John Smith` → `PERSON_001`)
+4. **Analyze** - Send the sanitized text to AI (NotebookLM, etc.) for analysis
+5. **Decode** - The tool automatically replaces placeholders back to real names in the AI output
 
 **The AI never sees the real data. You get the full analysis.**
+
+**Handles massive files:** The tool was built for a 170 MB, 4,713-page investigation file—far exceeding upload limits of ChatGPT, Gemini, and Claude.ai.
 
 ## What Can AI Do With Sanitized Documents?
 
@@ -85,18 +93,22 @@ DECODED:   "Timeline shows John Smith arrested on 16/10/2023, connected to
 ```mermaid
 flowchart TB
     subgraph LOCAL1["YOUR COMPUTER (offline)"]
-        A[PDF Document] --> B[DocSanitizer convert]
-        B --> C[Text file]
-        C --> D[DocSanitizer encode]
-        D --> E[Sanitized text]
+        A["170 MB PDF\n4,713 pages"] --> B[DocSanitizer convert --split]
+        B --> C1[part1.txt\n500 pages]
+        B --> C2[part2.txt\n500 pages]
+        B --> C3[... more parts]
+        C1 --> D[DocSanitizer encode]
+        C2 --> D
+        C3 --> D
+        D --> E["Sanitized text files\n(PERSON_001, PLACE_001...)"]
         D --> F[mapping.json]
     end
 
     E -->|upload| G
 
     subgraph CLOUD["CLOUD AI (e.g. NotebookLM)"]
-        G["AI analyzes: PERSON_001 met PERSON_002..."]
-        G --> H[AI finds patterns, timelines, connections]
+        G["AI analyzes sanitized files"]
+        G --> H["Finds patterns, builds timelines,\nmaps connections"]
     end
 
     H -->|download| I
@@ -104,7 +116,7 @@ flowchart TB
     subgraph LOCAL2["YOUR COMPUTER (offline)"]
         I[AI Analysis Output] --> J[DocSanitizer decode]
         F -.-> J
-        J --> K[Final Report with real names]
+        J --> K["Final Report\nwith real names restored"]
     end
 ```
 
@@ -128,26 +140,33 @@ python -m spacy download nl_core_news_sm
 
 ```bash
 # Step 1: Convert PDF to text (with OCR for scanned pages)
-docsanitizer convert investigation.pdf
+# For large files, use --split to create multiple text files
+docsanitizer convert investigation.pdf --split --max-pages 500
 
-# Step 2: Sanitize the text
-docsanitizer encode investigation.txt --legend
+# Creates: investigation_part1.txt, investigation_part2.txt, etc.
+
+# Step 2: Sanitize each text file (use same mapping across all)
+docsanitizer encode investigation_part1.txt --legend
+docsanitizer encode investigation_part2.txt --legend -m investigation_part1_mapping.json
 
 # Creates:
-#   investigation_sanitized.txt  ← Send this to AI
-#   investigation_mapping.json   ← Keep this LOCAL
+#   investigation_part1_sanitized.txt  ← Send to AI
+#   investigation_part2_sanitized.txt  ← Send to AI
+#   investigation_part1_mapping.json   ← Keep this LOCAL
 
-# IMPORTANT: Check investigation_sanitized.txt before uploading!
+# IMPORTANT: Check sanitized files before uploading!
 # Make sure no sensitive data slipped through.
 
-# Step 3: Upload sanitized file to NotebookLM
+# Step 3: Upload all sanitized files to NotebookLM
 #         Ask AI to build timeline, find patterns, etc.
 
 # Step 4: Save AI output, then decode back to real names
-docsanitizer decode ai_analysis.txt -m investigation_mapping.json
+docsanitizer decode ai_analysis.txt -m investigation_part1_mapping.json
 
 # Result: Full analysis with real names restored
 ```
+
+For smaller files (under ~50MB), you can skip the `--split` flag.
 
 ### Python API
 
