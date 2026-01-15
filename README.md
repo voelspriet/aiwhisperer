@@ -4,6 +4,23 @@
 
 > *"4,713 pages. An experienced researcher would need five days to build a timeline. I did it in 20 minutes, during a coffee break."*
 
+## Why This Tool Exists
+
+**Problem 1: Too big to upload**
+
+You have a 170 MB investigation file. You try cloud AI:
+- ChatGPT: "Failed upload"
+- Claude.ai: "Files larger than 31 MB not supported"
+- Gemini: "File larger than 100 MB"
+
+Your files are too big to fail—but too big to upload. AIWhisperer converts PDFs to text (92% smaller) and splits them into chunks cloud AI can handle.
+
+**Problem 2: Too sensitive to upload, too slow to run locally**
+
+You have confidential documents. Local AI would be safe, but it's painfully slow—hours for what cloud AI does in minutes. So you upload to cloud AI anyway, unredacted, hoping for the best.
+
+AIWhisperer gives you a middle path: sanitize locally, analyze in the cloud, decode locally. You get cloud AI speed with reduced exposure of sensitive data.
+
 ## What This Tool Does
 
 AIWhisperer helps you use AI on confidential documents while minimizing the risk of leaking sensitive data to cloud servers.
@@ -23,8 +40,6 @@ Your documents → [sanitize locally] → AI analyzes placeholders → [decode l
 5. **Decode** - Restore real names in the AI output
 
 **This reduces—but does not eliminate—the risk of exposing sensitive data.** Always review the sanitized output before uploading.
-
-**Handles massive files:** Built for a 170 MB, 4,713-page investigation file—far exceeding upload limits of ChatGPT, Gemini, and Claude.ai.
 
 ## What Can You Whisper to AI?
 
