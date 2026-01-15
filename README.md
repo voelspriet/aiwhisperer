@@ -1,22 +1,45 @@
 # DocSanitizer
 
-Strip sensitive data from documents for safe AI analysis. Replace names, phone numbers, addresses, vehicles, and more with placeholders while preserving document structure. Decode AI output back to original values.
-
-**The AI never sees the real data.**
-
-## The Story Behind This Tool
+**Let AI analyze your confidential documents—without leaking the data.**
 
 > *"4,713 pages. An experienced researcher would need five days to build a timeline. I did it in 20 minutes, during a coffee break."*
 
+## What This Tool Does
+
+DocSanitizer lets you use AI to analyze sensitive documents (criminal investigations, medical records, legal files) **without exposing the actual data**.
+
+**The workflow:**
+1. **Encode** - Replace all names, phones, addresses with placeholders (`John Smith` → `PERSON_001`)
+2. **Analyze** - Send the sanitized text to AI (NotebookLM, etc.) for analysis
+3. **Decode** - The tool automatically replaces placeholders back to real names in the AI output
+
+**The AI never sees the real data. You get the full analysis.**
+
+## What Can AI Do With Sanitized Documents?
+
+Once sanitized, you can ask AI to:
+
+- **Build timelines** - "Create a chronological timeline of all events"
+- **Find connections** - "Who communicated with whom? Map the relationships"
+- **Identify patterns** - "What phone numbers appear together? What locations overlap?"
+- **Summarize** - "What are the key findings in this 4,000-page investigation?"
+- **Extract data** - "List all financial transactions with dates and amounts"
+- **Cross-reference** - "Which people appear in multiple documents?"
+
+The AI works with `PERSON_001`, `PHONE_002`, `PLACE_003`. After analysis, DocSanitizer converts the output back: `PERSON_001` → `John Smith`, `PHONE_002` → `+32 489 66 70 88`, etc.
+
+**Result:** Full AI-powered analysis with real names—without ever uploading sensitive data.
+
+## The Story Behind This Tool
+
 This tool was born from a real investigation: a 170-megabyte cocaine smuggling case file containing court orders, wiretap transcripts, cell tower data, arrest warrants, bank statements, and interrogation protocols.
 
-The problem? No AI chatbot could handle it:
+The problem? You shouldn't upload confidential files to cloud AI. And even if you wanted to:
 - ChatGPT: "Failed upload"
 - Gemini: "File larger than 100 MB"
 - Claude.ai: "You may not upload files larger than 31 MB"
-- NotebookLM: Hidden 500,000-word limit
 
-The solution? **Anonymize locally, analyze in the cloud, decode locally.**
+The solution? **Encode locally → Analyze in cloud → Decode locally.**
 
 Read the full story: **[Speed reading a massive criminal investigation with AI](https://www.digitaldigging.org/p/speed-reading-a-massive-criminal)** - *How to make sense of 4,713 pages in 20 minutes without leaking data*
 
