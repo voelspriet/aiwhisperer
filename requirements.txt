@@ -1,0 +1,43 @@
+# DocSanitizer - Dependencies
+# =============================
+
+# Core dependencies (required)
+click>=8.0.0
+pyyaml>=6.0
+regex>=2023.0.0
+
+# =============================================================================
+# NER Backend Options (install one or more for better detection)
+# =============================================================================
+
+# Option 1: spaCy - Good baseline NER
+# pip install spacy
+# python -m spacy download nl_core_news_sm  # Dutch
+# python -m spacy download en_core_web_sm   # English
+# python -m spacy download de_core_news_sm  # German
+# python -m spacy download fr_core_news_sm  # French
+# python -m spacy download it_core_news_sm  # Italian
+# python -m spacy download es_core_news_sm  # Spanish
+spacy>=3.5.0
+
+# Option 2: Microsoft Presidio - Comprehensive PII detection
+# pip install presidio-analyzer presidio-anonymizer
+presidio-analyzer>=2.2.0
+presidio-anonymizer>=2.2.0
+
+# Option 3: GLiNER - Zero-shot NER (most flexible)
+# pip install gliner
+gliner>=0.2.0
+
+# =============================================================================
+# Quick install commands:
+# =============================================================================
+# All backends:
+#   pip install spacy presidio-analyzer presidio-anonymizer gliner
+#
+# Download spaCy models (all 6 languages):
+#   python download_models.py
+#
+# Or just GLiNER (easiest, works out of the box):
+#   pip install gliner
+# =============================================================================
