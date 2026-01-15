@@ -92,36 +92,26 @@ DECODED:   "Timeline shows John Smith arrested on 16/10/2023, connected to
 
 ## The Workflow
 
+**On your computer (offline):**
 ```
-LOCAL                          CLOUD                         LOCAL
-─────                          ─────                         ─────
+PDF file
+    ↓ aiwhisperer convert
+Text files (part1.txt, part2.txt, ...)
+    ↓ aiwhisperer encode
+Sanitized files + mapping.json
+```
 
-┌─────────────┐
-│  PDF file   │
-└──────┬──────┘
-       │ convert
-       ▼
-┌─────────────┐
-│  Text files │
-└──────┬──────┘
-       │ encode
-       ▼
-┌─────────────┐    upload     ┌─────────────┐
-│  Sanitized  │ ───────────►  │ AI analyzes │
-│  (no names) │               │ finds patterns│
-└─────────────┘               └──────┬──────┘
-       │                             │ download
-       │ mapping.json                ▼
-       │                      ┌─────────────┐
-       │                      │  AI output  │
-       │                      │ (placeholders)│
-       │                      └──────┬──────┘
-       │                             │
-       │         decode              │
-       └──────────────────►  ┌──────┴──────┐
-                             │ Final report │
-                             │ (real names) │
-                             └─────────────┘
+**Upload sanitized files to cloud AI (NotebookLM, etc.)**
+
+**AI analyzes → finds patterns → builds timeline**
+
+**Download AI output**
+
+**On your computer (offline):**
+```
+AI output (with placeholders)
+    ↓ aiwhisperer decode (using mapping.json)
+Final report with real names
 ```
 
 **The AI isn't evidence. It's a flashlight.** It helps you find where to look—in 20 minutes instead of 5 days.
