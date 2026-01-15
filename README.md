@@ -30,6 +30,23 @@ The AI works with `PERSON_001`, `PHONE_002`, `PLACE_003`. After analysis, DocSan
 
 **Result:** Full AI-powered analysis with real names—without ever uploading sensitive data.
 
+## ⚠️ Important Warnings
+
+**ALWAYS CHECK THE OUTPUT BEFORE UPLOADING TO AI.**
+
+This tool is not perfect. Detection can miss things. Before uploading any sanitized document:
+
+1. **Review the sanitized output** - Open the file and verify sensitive data is actually replaced
+2. **Use `--dry-run` first** - See what gets detected before committing
+3. **Check for unique identifiers** - Job titles, rare events, or specific descriptions can still identify people:
+   - ❌ `"PERSON_001, the mayor of Springfield"` → Still identifiable
+   - ❌ `"PERSON_001 arrested in Europe's largest drug bust"` → The event identifies the person
+   - ✅ `"PERSON_001 transferred money to PERSON_002"` → Safe
+4. **Test with sample data first** - Before processing real confidential documents
+5. **You are responsible** - This tool assists, but YOU must verify the output is safe
+
+**No detection is 100% accurate.** Names with unusual spelling, new patterns, or edge cases may slip through. When in doubt, manually check.
+
 ## The Story Behind This Tool
 
 This tool was born from a real investigation: a 170-megabyte cocaine smuggling case file containing court orders, wiretap transcripts, cell tower data, arrest warrants, bank statements, and interrogation protocols.
@@ -175,12 +192,7 @@ The original workflow uses **Claude Code** (runs locally, no upload limits) for 
 
 ### Can't AI guess who PERSON_001 is from context?
 
-Be careful with unique identifiers:
-- ❌ `"PERSON_001, the mayor of Springfield"` → AI might guess
-- ❌ `"PERSON_001 arrested in Europe's largest drug bust"` → The event identifies the person
-- ✅ `"PERSON_001 transferred money to PERSON_002"` → Structure only, no identification
-
-For maximum paranoia, review the sanitized output before uploading.
+Yes, if there are unique identifiers. See the **⚠️ Important Warnings** section above. Always review the sanitized output before uploading.
 
 ### What about scanned PDFs?
 
