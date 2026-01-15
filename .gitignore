@@ -68,3 +68,4 @@ fullinvestigation*.json
 # Analysis files
 ANALYSIS_PROMPT.md
 ANALYSIS_RESULTS.md
+CLAUDE.md
