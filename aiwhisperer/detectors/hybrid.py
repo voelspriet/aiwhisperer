@@ -24,6 +24,9 @@ from .patterns import (
     detect_any_street,
     detect_vehicles,
     detect_names_by_context,
+    detect_names,
+    detect_places,
+    _remove_overlaps,
 )
 
 # Language model mapping
@@ -138,7 +141,9 @@ class HybridDetector:
         all_matches.extend(detect_roads(text))           # N133, A12, E19
         all_matches.extend(detect_any_street(text))      # Kampweg, Noorderlaan
         all_matches.extend(detect_context_places(text))  # "te Wuustwezel"
+        all_matches.extend(detect_places(text))          # Known city/town names
         all_matches.extend(detect_names_by_context(text)) # Names before dates, ALLCAPS
+        all_matches.extend(detect_names(text))           # Dutch compound names (DE GROOT Willem)
 
         # Track positions of pattern matches
         for m in all_matches:
@@ -188,6 +193,9 @@ class HybridDetector:
                 confidence=0.90,
                 context=text[max(0, start-20):end+20]
             ))
+
+        # Remove overlapping matches (keep higher confidence, longer matches)
+        all_matches = _remove_overlaps(all_matches)
 
         # Sort by position
         all_matches.sort(key=lambda m: m.start)

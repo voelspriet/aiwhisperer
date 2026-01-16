@@ -1,5 +1,5 @@
 """
-Tests for DocSanitizer encoder/decoder.
+Tests for AIWhisperer encoder/decoder.
 
 Uses sample text based on patterns found in real legal documents.
 """
@@ -11,7 +11,7 @@ from pathlib import Path
 # Add parent to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from docsanitizer import encode, decode, Mapping
+from aiwhisperer import encode, decode, Mapping
 
 
 # Sample text based on real document patterns (with fake data)
