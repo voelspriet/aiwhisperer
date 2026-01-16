@@ -204,38 +204,120 @@ class MainWindow(QMainWindow):
     
     def setup_ui(self):
         """Set up the main user interface."""
-        self.setWindowTitle("AIWhisperer - PDF to Text with Privacy")
+        self.setWindowTitle("AIWhisperer")
         self.setMinimumSize(900, 700)
-        
+
+        # Apply dark theme
+        self.setStyleSheet(DARK_STYLESHEET)
+
         # Central widget
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        
+
         # Main layout
         layout = QVBoxLayout(central_widget)
-        layout.setContentsMargins(10, 10, 10, 10)
-        
-        # Tab widget
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        # Header
+        header = QFrame()
+        header.setStyleSheet(f"""
+            QFrame {{
+                background-color: {COLORS['bg_medium']};
+                border-bottom: 1px solid {COLORS['border']};
+                padding: 12px 20px;
+            }}
+        """)
+        header_layout = QHBoxLayout(header)
+        header_layout.setContentsMargins(20, 12, 20, 12)
+
+        # Title
+        title = QLabel("AIWhisperer")
+        title.setStyleSheet(f"""
+            font-size: 20px;
+            font-weight: 700;
+            color: {COLORS['text_primary']};
+        """)
+        header_layout.addWidget(title)
+
+        # Tagline
+        tagline = QLabel("Whisper your documents to AI")
+        tagline.setStyleSheet(f"""
+            font-size: 13px;
+            color: {COLORS['text_secondary']};
+            margin-left: 12px;
+        """)
+        header_layout.addWidget(tagline)
+
+        header_layout.addStretch()
+
+        # Version
+        version_label = QLabel(f"v{VERSION}")
+        version_label.setStyleSheet(f"""
+            font-size: 11px;
+            color: {COLORS['text_muted']};
+        """)
+        header_layout.addWidget(version_label)
+
+        layout.addWidget(header)
+
+        # Content area with padding
+        content = QWidget()
+        content_layout = QVBoxLayout(content)
+        content_layout.setContentsMargins(20, 20, 20, 20)
+        content_layout.setSpacing(0)
+
+        # Tab widget with custom styling
         self.tab_widget = QTabWidget()
-        layout.addWidget(self.tab_widget)
-        
-        # Convert tab (new simplified interface)
+        self.tab_widget.setStyleSheet(f"""
+            QTabWidget::pane {{
+                border: 1px solid {COLORS['border']};
+                border-radius: 8px;
+                background-color: {COLORS['bg_medium']};
+                padding: 16px;
+            }}
+            QTabBar::tab {{
+                background-color: {COLORS['bg_dark']};
+                color: {COLORS['text_secondary']};
+                border: 1px solid {COLORS['border']};
+                border-bottom: none;
+                border-top-left-radius: 6px;
+                border-top-right-radius: 6px;
+                padding: 10px 20px;
+                margin-right: 4px;
+                font-weight: 500;
+            }}
+            QTabBar::tab:selected {{
+                background-color: {COLORS['bg_medium']};
+                color: {COLORS['accent']};
+                border-bottom: 2px solid {COLORS['accent']};
+            }}
+            QTabBar::tab:hover:!selected {{
+                background-color: {COLORS['bg_light']};
+                color: {COLORS['text_primary']};
+            }}
+        """)
+        content_layout.addWidget(self.tab_widget)
+
+        layout.addWidget(content)
+
+        # Convert tab (main workflow)
         self.convert_widget = ConvertWidget()
         self.tab_widget.addTab(self.convert_widget, "Convert PDF")
-        
+
         # Decode tab
         self.decode_widget = DecodeWidget()
         self.tab_widget.addTab(self.decode_widget, "Decode AI Output")
-        
-        # Advanced tab (old encode widget)
+
+        # Advanced tab
         self.encode_widget = EncodeWidget()
         self.tab_widget.addTab(self.encode_widget, "Advanced")
-        
+
         # Status bar
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
-        self.status_bar.showMessage("Ready - Drop a PDF to get started")
-        
+        self.status_bar.showMessage("Drop a PDF to get started")
+
         # Connect signals
         self.convert_widget.status_message.connect(self.status_bar.showMessage)
         self.encode_widget.status_message.connect(self.status_bar.showMessage)

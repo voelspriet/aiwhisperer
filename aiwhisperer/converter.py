@@ -102,6 +102,7 @@ def convert_with_pymupdf_tesseract(
     pdf_path: Union[str, Path],
     output_dir: Optional[Union[str, Path]] = None,
     languages: str = "nld+eng+deu+fra",
+    progress_callback: Optional[callable] = None,
 ) -> Tuple[str, dict]:
     """
     Convert PDF to text using PyMuPDF + pytesseract fallback.
@@ -112,6 +113,7 @@ def convert_with_pymupdf_tesseract(
         pdf_path: Path to PDF file
         output_dir: Directory for output files (optional)
         languages: Tesseract language codes (default: Dutch+English+German+French)
+        progress_callback: Optional callback(page_num, total_pages, message)
 
     Returns:
         Tuple of (extracted_text, metadata)
@@ -120,21 +122,39 @@ def convert_with_pymupdf_tesseract(
 
     pdf_path = Path(pdf_path)
     doc = fitz.open(str(pdf_path))
+    total_pages = len(doc)
 
     all_text = []
     pages_native = 0
     pages_ocr = 0
+    pages_failed = 0
+    ocr_errors = []
 
     for page_num, page in enumerate(doc):
+        if progress_callback:
+            progress_callback(page_num + 1, total_pages, f"Processing page {page_num + 1}/{total_pages}")
+
         # Try native text extraction first
         text = page.get_text()
+        native_chars = len(text.strip())
 
         # If page has very little text, it might be scanned - try OCR
-        if len(text.strip()) < 50:
-            ocr_text = _ocr_page(page, languages)
-            if ocr_text and len(ocr_text.strip()) > len(text.strip()):
+        if native_chars < 50:
+            ocr_text, ocr_error = _ocr_page(page, languages)
+
+            if ocr_error:
+                ocr_errors.append(f"Page {page_num + 1}: {ocr_error}")
+
+            if ocr_text and len(ocr_text.strip()) > native_chars:
                 text = ocr_text
                 pages_ocr += 1
+            elif native_chars == 0:
+                # Page is completely empty even after OCR attempt
+                pages_failed += 1
+                if ocr_error:
+                    text = f"[OCR FAILED: {ocr_error}]"
+                else:
+                    text = "[EMPTY PAGE - possibly image-only content]"
             else:
                 pages_native += 1
         else:
@@ -148,10 +168,15 @@ def convert_with_pymupdf_tesseract(
 
     metadata = {
         "converter": "pymupdf+tesseract",
-        "total_pages": len(all_text),
+        "total_pages": total_pages,
         "native_pages": pages_native,
         "ocr_pages": pages_ocr,
+        "failed_pages": pages_failed,
     }
+
+    if ocr_errors:
+        metadata["ocr_errors"] = ocr_errors
+        metadata["warning"] = f"{len(ocr_errors)} pages had OCR issues"
 
     # Save if output_dir specified
     if output_dir:
@@ -165,23 +190,42 @@ def convert_with_pymupdf_tesseract(
     return full_text, metadata
 
 
-def _ocr_page(page, languages: str) -> Optional[str]:
-    """OCR a single page using pytesseract."""
+def _ocr_page(page, languages: str = "eng") -> Tuple[Optional[str], Optional[str]]:
+    """
+    OCR a single page using pytesseract.
+
+    Returns:
+        Tuple of (text, error_message). If OCR succeeds, error is None.
+        If OCR fails, text is None and error contains the reason.
+    """
     try:
         import pytesseract
         from PIL import Image
         import io
+        import fitz
 
-        # Render page to image
-        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))  # 2x zoom for better OCR
+        # Render page to image at higher resolution for better OCR
+        # 3x zoom = 216 DPI, good balance of quality and speed
+        pix = page.get_pixmap(matrix=fitz.Matrix(3, 3))
         img_data = pix.tobytes("png")
         img = Image.open(io.BytesIO(img_data))
 
-        # OCR
-        text = pytesseract.image_to_string(img, lang=languages)
-        return text
-    except Exception:
-        return None
+        # Try OCR with requested languages, fall back to English only
+        try:
+            text = pytesseract.image_to_string(img, lang=languages)
+        except pytesseract.TesseractError:
+            # Language pack not installed, try English only
+            try:
+                text = pytesseract.image_to_string(img, lang="eng")
+            except pytesseract.TesseractError as e:
+                return None, f"Tesseract error: {e}"
+
+        return text, None
+
+    except ImportError as e:
+        return None, f"OCR dependency missing: {e}"
+    except Exception as e:
+        return None, f"OCR failed: {e}"
 
 
 def convert_pdf(

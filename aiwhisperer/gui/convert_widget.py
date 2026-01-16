@@ -100,95 +100,134 @@ class ConvertWorker(QThread):
             self.error.emit(str(e))
 
 
+# Digital Digging color palette
+COLORS = {
+    'bg_dark': '#1a1a2e',
+    'bg_medium': '#16213e',
+    'bg_light': '#0f3460',
+    'accent': '#e6a919',
+    'text_primary': '#eaeaea',
+    'text_secondary': '#a0a0a0',
+    'text_muted': '#666666',
+    'border': '#2a2a4a',
+    'success': '#4ade80',
+}
+
+
 class DropZone(QFrame):
     """Drag-and-drop zone for PDF files."""
-    
+
     file_dropped = Signal(str)
-    
+
     def __init__(self):
         super().__init__()
         self.setAcceptDrops(True)
         self.setFrameStyle(QFrame.Shape.StyledPanel | QFrame.Shadow.Sunken)
-        self.setMinimumHeight(150)
-        self.setStyleSheet("""
-            DropZone {
-                border: 2px dashed #aaa;
-                border-radius: 10px;
-                background-color: #f8f8f8;
-            }
-            DropZone:hover {
-                border-color: #666;
-                background-color: #f0f0f0;
-            }
-        """)
-        
+        self.setMinimumHeight(180)
+        self._apply_default_style()
+
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
-        self.icon_label = QLabel("📄")
-        self.icon_label.setFont(QFont("Arial", 48))
+        layout.setSpacing(8)
+
+        self.icon_label = QLabel("PDF")
+        self.icon_label.setStyleSheet(f"""
+            font-size: 28px;
+            font-weight: bold;
+            color: {COLORS['text_muted']};
+            padding: 8px 16px;
+            border: 2px solid {COLORS['border']};
+            border-radius: 8px;
+            background-color: {COLORS['bg_medium']};
+        """)
         self.icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.icon_label)
-        
+
         self.text_label = QLabel("Drop PDF here or click to browse")
-        self.text_label.setStyleSheet("color: #666; font-size: 14px;")
+        self.text_label.setStyleSheet(f"color: {COLORS['text_secondary']}; font-size: 14px;")
         self.text_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.text_label)
-        
+
         self.file_label = QLabel("")
-        self.file_label.setStyleSheet("color: #333; font-weight: bold;")
+        self.file_label.setStyleSheet(f"color: {COLORS['text_primary']}; font-weight: bold; font-size: 13px;")
         self.file_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(self.file_label)
-    
+
+        self.size_label = QLabel("")
+        self.size_label.setStyleSheet(f"color: {COLORS['text_muted']}; font-size: 12px;")
+        self.size_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.size_label)
+
+    def _apply_default_style(self):
+        self.setStyleSheet(f"""
+            DropZone {{
+                border: 2px dashed {COLORS['border']};
+                border-radius: 12px;
+                background-color: {COLORS['bg_dark']};
+            }}
+            DropZone:hover {{
+                border-color: {COLORS['accent']};
+                background-color: {COLORS['bg_medium']};
+            }}
+        """)
+
     def dragEnterEvent(self, event: QDragEnterEvent):
         if event.mimeData().hasUrls():
             urls = event.mimeData().urls()
             if urls and urls[0].toLocalFile().lower().endswith('.pdf'):
                 event.acceptProposedAction()
-                self.setStyleSheet("""
-                    DropZone {
-                        border: 2px dashed #4CAF50;
-                        border-radius: 10px;
-                        background-color: #e8f5e9;
-                    }
+                self.setStyleSheet(f"""
+                    DropZone {{
+                        border: 2px dashed {COLORS['accent']};
+                        border-radius: 12px;
+                        background-color: {COLORS['bg_light']};
+                    }}
                 """)
-    
+
     def dragLeaveEvent(self, event):
-        self.setStyleSheet("""
-            DropZone {
-                border: 2px dashed #aaa;
-                border-radius: 10px;
-                background-color: #f8f8f8;
-            }
-            DropZone:hover {
-                border-color: #666;
-                background-color: #f0f0f0;
-            }
-        """)
-    
+        self._apply_default_style()
+
     def dropEvent(self, event: QDropEvent):
         urls = event.mimeData().urls()
         if urls:
             file_path = urls[0].toLocalFile()
             if file_path.lower().endswith('.pdf'):
                 self.file_dropped.emit(file_path)
-        
         self.dragLeaveEvent(event)
-    
+
     def mousePressEvent(self, event):
-        self.file_dropped.emit("")  # Signal to open file dialog
-    
+        self.file_dropped.emit("")
+
     def set_file(self, file_path):
         if file_path:
             self.file_label.setText(os.path.basename(file_path))
             self.text_label.setText("PDF selected:")
-            self.icon_label.setText("✓")
-            self.icon_label.setStyleSheet("color: #4CAF50;")
+            size_mb = os.path.getsize(file_path) / (1024 * 1024)
+            self.size_label.setText(f"{size_mb:.1f} MB")
+            self.icon_label.setText("OK")
+            self.icon_label.setStyleSheet(f"""
+                font-size: 28px;
+                font-weight: bold;
+                color: {COLORS['success']};
+                padding: 8px 16px;
+                border: 2px solid {COLORS['success']};
+                border-radius: 8px;
+                background-color: {COLORS['bg_medium']};
+            """)
         else:
             self.file_label.setText("")
+            self.size_label.setText("")
             self.text_label.setText("Drop PDF here or click to browse")
-            self.icon_label.setText("📄")
-            self.icon_label.setStyleSheet("")
+            self.icon_label.setText("PDF")
+            self.icon_label.setStyleSheet(f"""
+                font-size: 28px;
+                font-weight: bold;
+                color: {COLORS['text_muted']};
+                padding: 8px 16px;
+                border: 2px solid {COLORS['border']};
+                border-radius: 8px;
+                background-color: {COLORS['bg_medium']};
+            """)
 
 
 class ConvertWidget(QWidget):
@@ -237,47 +276,56 @@ class ConvertWidget(QWidget):
         button_layout = QHBoxLayout()
         button_layout.setSpacing(20)
         
-        # Convert button (non-confidential)
-        self.convert_btn = QPushButton("Convert PDF\n(Non-confidential)")
+        # Convert button (non-confidential) - uses accent color
+        self.convert_btn = QPushButton("Just Convert\nPDF to Text")
         self.convert_btn.setMinimumHeight(80)
-        self.convert_btn.setStyleSheet("""
-            QPushButton {
-                font-size: 16px;
+        self.convert_btn.setStyleSheet(f"""
+            QPushButton {{
+                font-size: 15px;
                 font-weight: bold;
-                background-color: #2196F3;
-                color: white;
+                background-color: {COLORS['bg_light']};
+                color: {COLORS['text_primary']};
+                border: 2px solid {COLORS['border']};
                 border-radius: 10px;
                 padding: 15px;
-            }
-            QPushButton:hover {
-                background-color: #1976D2;
-            }
-            QPushButton:disabled {
-                background-color: #ccc;
-            }
+            }}
+            QPushButton:hover {{
+                background-color: {COLORS['accent']};
+                color: {COLORS['bg_dark']};
+                border-color: {COLORS['accent']};
+            }}
+            QPushButton:disabled {{
+                background-color: {COLORS['bg_medium']};
+                color: {COLORS['text_muted']};
+                border-color: {COLORS['bg_medium']};
+            }}
         """)
         self.convert_btn.clicked.connect(lambda: self.start_conversion(sanitize=False))
         self.convert_btn.setEnabled(False)
         button_layout.addWidget(self.convert_btn)
-        
-        # Convert & Sanitize button (confidential)
-        self.sanitize_btn = QPushButton("Convert & Sanitize\n(Confidential)")
+
+        # Convert & Sanitize button (confidential) - amber/gold accent
+        self.sanitize_btn = QPushButton("Convert + Sanitize\nFor Confidential Files")
         self.sanitize_btn.setMinimumHeight(80)
-        self.sanitize_btn.setStyleSheet("""
-            QPushButton {
-                font-size: 16px;
+        self.sanitize_btn.setStyleSheet(f"""
+            QPushButton {{
+                font-size: 15px;
                 font-weight: bold;
-                background-color: #4CAF50;
-                color: white;
+                background-color: {COLORS['accent']};
+                color: {COLORS['bg_dark']};
+                border: 2px solid {COLORS['accent']};
                 border-radius: 10px;
                 padding: 15px;
-            }
-            QPushButton:hover {
-                background-color: #388E3C;
-            }
-            QPushButton:disabled {
-                background-color: #ccc;
-            }
+            }}
+            QPushButton:hover {{
+                background-color: #f5b82e;
+                border-color: #f5b82e;
+            }}
+            QPushButton:disabled {{
+                background-color: {COLORS['bg_medium']};
+                color: {COLORS['text_muted']};
+                border-color: {COLORS['bg_medium']};
+            }}
         """)
         self.sanitize_btn.clicked.connect(lambda: self.start_conversion(sanitize=True))
         self.sanitize_btn.setEnabled(False)
