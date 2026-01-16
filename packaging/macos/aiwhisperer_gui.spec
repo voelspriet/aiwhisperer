@@ -12,6 +12,7 @@ The resulting .app bundle will be in dist/AIWhisperer.app
 
 from pathlib import Path
 import sys
+from PyInstaller.utils.hooks import collect_all, collect_data_files, collect_submodules
 
 # Get the project root directory
 # SPECPATH is the directory containing this spec file (packaging/macos/)
@@ -84,6 +85,10 @@ hidden_imports = [
     'spacy.lang.it',
     'spacy.lang.es',
     
+    # PDF conversion (pymupdf/fitz)
+    'fitz',
+    'pymupdf',
+    
     # Other dependencies
     'yaml',
     'regex',
@@ -105,17 +110,56 @@ excludes = [
     'numpy.testing',
 ]
 
+# Collect pymupdf (fitz) data and binaries
+pymupdf_datas = []
+pymupdf_binaries = []
+pymupdf_hiddenimports = []
+try:
+    pymupdf_datas, pymupdf_binaries, pymupdf_hiddenimports = collect_all('fitz')
+except Exception as e:
+    print(f"Warning: Could not collect fitz: {e}")
+
+# Collect spaCy data (for language models)
+spacy_datas = []
+spacy_binaries = []
+spacy_hiddenimports = []
+try:
+    spacy_datas, spacy_binaries, spacy_hiddenimports = collect_all('spacy')
+except Exception as e:
+    print(f"Warning: Could not collect spacy: {e}")
+
+# Try to collect spaCy language models
+for model in ['nl_core_news_sm', 'en_core_web_sm']:
+    try:
+        model_datas, model_binaries, model_hiddenimports = collect_all(model)
+        spacy_datas.extend(model_datas)
+        spacy_binaries.extend(model_binaries)
+        spacy_hiddenimports.extend(model_hiddenimports)
+    except Exception as e:
+        print(f"Warning: Could not collect {model}: {e}")
+
 # Data files to include
 datas = [
     # Include the aiwhisperer package
     (str(project_root / 'aiwhisperer'), 'aiwhisperer'),
 ]
+datas.extend(pymupdf_datas)
+datas.extend(spacy_datas)
+
+# Additional binaries
+binaries = []
+binaries.extend(pymupdf_binaries)
+binaries.extend(spacy_binaries)
+
+# Extend hidden imports
+hidden_imports.extend(pymupdf_hiddenimports)
+hidden_imports.extend(spacy_hiddenimports)
 
 # Analysis
 a = Analysis(
     [str(Path(SPECPATH) / 'gui_entry_point.py')],
     pathex=[str(project_root)],
-    binaries=[],
+    binaries=binaries,
     datas=datas,
     hiddenimports=hidden_imports,
     hookspath=[],

@@ -86,6 +86,8 @@ jobs:
           pip install PySide6
           # Install regex explicitly (core dependency)
           pip install regex
+          # Install pymupdf for PDF conversion (required for the app to work)
+          pip install pymupdf
           # Install the package with spacy support
           pip install -e ".[spacy]"
           
