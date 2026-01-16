@@ -1,0 +1,213 @@
+# GitHub Actions workflow to build macOS GUI application for AIWhisperer
+#
+# This workflow:
+# 1. Builds standalone .app bundles for both Intel (x86_64) and Apple Silicon (arm64)
+# 2. Creates .dmg disk images for distribution
+# 3. Uploads artifacts for download
+#
+# Triggers:
+# - Manual dispatch (workflow_dispatch)
+# - Push to main with version tag (v*)
+# - Pull requests (for testing, no artifact upload)
+
+name: Build macOS GUI App
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v0.4.0)'
+        required: false
+        default: ''
+  push:
+    tags:
+      - 'v*'
+  pull_request:
+    paths:
+      - 'aiwhisperer/**'
+      - 'setup.py'
+      - 'packaging/**'
+      - '.github/workflows/build-macos-gui.yml'
+
+jobs:
+  build:
+    name: Build macOS GUI (${{ matrix.arch }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # macOS Intel (x86_64)
+          - os: macos-13
+            arch: x86_64
+            python-version: '3.11'
+          # macOS Apple Silicon (arm64)
+          - os: macos-14
+            arch: arm64
+            python-version: '3.11'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Get version
+        id: version
+        run: |
+          if [[ -n "${{ github.event.inputs.version }}" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION="${{ github.ref_name }}"
+          else
+            VERSION="v$(grep -o 'version="[^"]*"' setup.py | cut -d'"' -f2)"
+          fi
+          # Remove 'v' prefix if present for filename
+          VERSION_NUM="${VERSION#v}"
+          echo "version=$VERSION_NUM" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION_NUM"
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/pip
+          key: ${{ runner.os }}-${{ matrix.arch }}-pip-gui-${{ hashFiles('setup.py') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.arch }}-pip-gui-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          # Install PySide6 for GUI
+          pip install PySide6
+          # Install regex explicitly (core dependency)
+          pip install regex
+          # Install the package with spacy support
+          pip install -e ".[spacy]"
+          
+          # Install spaCy models for better detection
+          python -m spacy download nl_core_news_sm || true
+          python -m spacy download en_core_web_sm || true
+
+      - name: Install create-dmg
+        run: |
+          brew install create-dmg
+
+      - name: Build GUI application with PyInstaller
+        run: |
+          python -m PyInstaller packaging/macos/aiwhisperer_gui.spec --clean --noconfirm
+          
+          # Verify build
+          if [[ ! -d "dist/AIWhisperer.app" ]]; then
+            echo "Error: Build failed - .app bundle not found"
+            exit 1
+          fi
+          
+          echo "Build successful! App bundle created at dist/AIWhisperer.app"
+          ls -la dist/
+
+      - name: Create DMG
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          ARCH="${{ matrix.arch }}"
+          DMG_NAME="AIWhisperer-GUI-${VERSION}-macos-${ARCH}.dmg"
+          
+          # Create temp directory for DMG contents
+          mkdir -p dist/dmg_temp
+          cp -R dist/AIWhisperer.app dist/dmg_temp/
+          
+          # Create README
+          cat > dist/dmg_temp/README.txt << 'EOF'
+          AIWhisperer GUI - Secure AI Document Analysis
+          =============================================
+          
+          Installation:
+          1. Drag AIWhisperer.app to your Applications folder
+          2. Double-click to launch
+          
+          First Launch:
+          - macOS may show a security warning since the app is not notarized
+          - Right-click the app and select "Open" to bypass Gatekeeper
+          - Or run: xattr -cr /Applications/AIWhisperer.app
+          
+          Features:
+          - Encode: Sanitize documents by replacing sensitive data with placeholders
+          - Decode: Restore original values in AI-generated outputs
+          - Multiple detection backends (spaCy, patterns)
+          - Support for multiple languages (Dutch, English, German, French, Italian, Spanish)
+          
+          For more information, visit:
+          https://github.com/voelspriet/aiwhisperer
+          EOF
+          
+          # Create DMG with create-dmg
+          create-dmg \
+            --volname "AIWhisperer ${VERSION}" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon-size 100 \
+            --icon "AIWhisperer.app" 150 190 \
+            --icon "README.txt" 450 190 \
+            --app-drop-link 300 190 \
+            --hide-extension "AIWhisperer.app" \
+            "dist/${DMG_NAME}" \
+            "dist/dmg_temp" || {
+              # Fallback to hdiutil if create-dmg fails
+              echo "create-dmg failed, using hdiutil..."
+              hdiutil create \
+                -volname "AIWhisperer ${VERSION}" \
+                -srcfolder "dist/dmg_temp" \
+                -ov \
+                -format UDZO \
+                "dist/${DMG_NAME}"
+            }
+          
+          # Verify DMG
+          if [[ -f "dist/${DMG_NAME}" ]]; then
+            echo "DMG created: dist/${DMG_NAME}"
+            ls -lh "dist/${DMG_NAME}"
+          else
+            echo "Error: DMG creation failed"
+            exit 1
+          fi
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AIWhisperer-GUI-${{ steps.version.outputs.version }}-macos-${{ matrix.arch }}
+          path: dist/*.dmg
+          retention-days: 30
+
+  # Create a release with all DMGs when triggered by a tag
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: AIWhisperer-GUI-*
+
+      - name: List artifacts
+        run: |
+          find artifacts -type f -name "*.dmg" | while read f; do
+            echo "Found: $f"
+            ls -lh "$f"
+          done
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: artifacts/**/*.dmg
+          draft: true
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
