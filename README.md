@@ -2,7 +2,7 @@
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: CC0](https://img.shields.io/badge/license-CC0-green.svg)](https://creativecommons.org/publicdomain/zero/1.0/)
-[![Version](https://img.shields.io/badge/version-0.3.0-orange.svg)](https://github.com/voelspriet/aiwhisperer/releases)
+[![Version](https://img.shields.io/badge/version-0.4.0-orange.svg)](https://github.com/voelspriet/aiwhisperer/releases)
 
 **Whisper your documents to AI—with reduced risk of exposing sensitive data.**
 
@@ -109,6 +109,18 @@ DECODED:   "Timeline shows John Smith arrested on 16/10/2023, connected to
 ## Quick Start
 
 ### Installation
+
+#### Option 1: macOS App (Apple Silicon)
+
+Download the `.dmg` installer from [Releases](https://github.com/voelspriet/aiwhisperer/releases) - no Python needed.
+
+1. Download `AIWhisperer-x.x.x-arm64.dmg`
+2. Open the DMG and run `install.command`
+3. Run `aiwhisperer --help` in Terminal
+
+Note: The app is not code-signed. On first run, right-click and select "Open" to bypass Gatekeeper.
+
+#### Option 2: pip install (all platforms)
 
 ```bash
 # Install with spaCy and OCR support (recommended)
