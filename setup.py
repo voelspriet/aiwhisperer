@@ -32,6 +32,7 @@ setup(
         "gliner": ["gliner>=0.2.0"],
         "ocr": ["marker-pdf"],
         "ocr-fallback": ["pymupdf>=1.23.0", "pytesseract>=0.3.10", "pdf2image>=1.16.0"],
+        "gui": ["PySide6>=6.5.0"],
         "all": [
             "spacy>=3.5.0",
             "presidio-analyzer>=2.2.0",
@@ -43,6 +44,9 @@ setup(
     entry_points={
         "console_scripts": [
             "aiwhisperer=aiwhisperer.cli:main",
+        ],
+        "gui_scripts": [
+            "aiwhisperer-gui=aiwhisperer.gui.main:main",
         ],
     },
     keywords=[
