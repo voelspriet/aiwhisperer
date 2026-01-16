@@ -1,0 +1,229 @@
+# GitHub Actions workflow to build macOS .dmg installer for AIWhisperer
+#
+# This workflow:
+# 1. Builds standalone executables for both Intel (x86_64) and Apple Silicon (arm64)
+# 2. Creates .dmg disk images for distribution
+# 3. Uploads artifacts for download
+#
+# Triggers:
+# - Manual dispatch (workflow_dispatch)
+# - Push to main with version tag (v*)
+# - Pull requests (for testing, no artifact upload)
+
+name: Build macOS DMG
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag (e.g., v0.3.0)'
+        required: false
+        default: ''
+  push:
+    tags:
+      - 'v*'
+  pull_request:
+    paths:
+      - 'aiwhisperer/**'
+      - 'setup.py'
+      - 'packaging/**'
+      - '.github/workflows/build-macos-dmg.yml'
+
+jobs:
+  build:
+    name: Build macOS DMG (${{ matrix.arch }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # macOS Intel (x86_64)
+          - os: macos-13
+            arch: x86_64
+            python-version: '3.11'
+          # macOS Apple Silicon (arm64)
+          - os: macos-14
+            arch: arm64
+            python-version: '3.11'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Get version
+        id: version
+        run: |
+          if [[ -n "${{ github.event.inputs.version }}" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION="${{ github.ref_name }}"
+          else
+            VERSION="v$(grep -o 'version="[^"]*"' setup.py | cut -d'"' -f2)"
+          fi
+          # Remove 'v' prefix if present for filename
+          VERSION_NUM="${VERSION#v}"
+          echo "version=$VERSION_NUM" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION_NUM"
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/pip
+          key: ${{ runner.os }}-${{ matrix.arch }}-pip-${{ hashFiles('setup.py', 'requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.arch }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          pip install -e ".[spacy]"
+          
+          # Install spaCy models for better detection
+          python -m spacy download nl_core_news_sm || true
+          python -m spacy download en_core_web_sm || true
+
+      - name: Install create-dmg
+        run: |
+          brew install create-dmg
+
+      - name: Build executable with PyInstaller
+        run: |
+          python -m PyInstaller packaging/macos/aiwhisperer.spec --clean --noconfirm
+          
+          # Verify build
+          if [[ ! -f "dist/aiwhisperer" ]]; then
+            echo "Error: Build failed - executable not found"
+            exit 1
+          fi
+          
+          # Test the executable
+          ./dist/aiwhisperer --version || true
+          ./dist/aiwhisperer --help
+
+      - name: Create DMG
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          ARCH="${{ matrix.arch }}"
+          DMG_NAME="AIWhisperer-${VERSION}-macos-${ARCH}.dmg"
+          
+          # Create temp directory for DMG contents
+          mkdir -p dist/dmg_temp
+          cp dist/aiwhisperer dist/dmg_temp/
+          
+          # Create README
+          cat > dist/dmg_temp/README.txt << 'EOF'
+          AIWhisperer - Secure AI Document Analysis
+          ==========================================
+          
+          Installation:
+          1. Copy 'aiwhisperer' to /usr/local/bin/ or another directory in your PATH
+          2. Make it executable: chmod +x /usr/local/bin/aiwhisperer
+          
+          Quick Install (run in Terminal):
+              sudo cp aiwhisperer /usr/local/bin/
+              sudo chmod +x /usr/local/bin/aiwhisperer
+          
+          Usage:
+              aiwhisperer check              # Verify installation
+              aiwhisperer encode doc.txt     # Sanitize a document
+              aiwhisperer decode out.txt -m mapping.json  # Restore values
+          
+          For more information:
+              aiwhisperer --help
+          EOF
+          
+          # Create install script
+          cat > dist/dmg_temp/install.command << 'INSTALL_EOF'
+          #!/bin/bash
+          SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+          echo "AIWhisperer Installer"
+          echo "====================="
+          echo ""
+          if [[ ! -d "/usr/local/bin" ]]; then
+              sudo mkdir -p /usr/local/bin
+          fi
+          echo "Installing aiwhisperer to /usr/local/bin..."
+          sudo cp "$SCRIPT_DIR/aiwhisperer" /usr/local/bin/
+          sudo chmod +x /usr/local/bin/aiwhisperer
+          echo ""
+          echo "Installation complete! Run 'aiwhisperer --help' to get started."
+          echo ""
+          echo "Press any key to close..."
+          read -n 1
+          INSTALL_EOF
+          chmod +x dist/dmg_temp/install.command
+          
+          # Create DMG with create-dmg
+          create-dmg \
+            --volname "AIWhisperer ${VERSION}" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon-size 100 \
+            --icon "aiwhisperer" 150 190 \
+            --icon "install.command" 450 190 \
+            --icon "README.txt" 300 320 \
+            --hide-extension "aiwhisperer" \
+            --hide-extension "install.command" \
+            "dist/${DMG_NAME}" \
+            "dist/dmg_temp" || {
+              # Fallback to hdiutil if create-dmg fails
+              echo "create-dmg failed, using hdiutil..."
+              hdiutil create \
+                -volname "AIWhisperer ${VERSION}" \
+                -srcfolder "dist/dmg_temp" \
+                -ov \
+                -format UDZO \
+                "dist/${DMG_NAME}"
+            }
+          
+          # Verify DMG
+          if [[ -f "dist/${DMG_NAME}" ]]; then
+            echo "DMG created: dist/${DMG_NAME}"
+            ls -lh "dist/${DMG_NAME}"
+          else
+            echo "Error: DMG creation failed"
+            exit 1
+          fi
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AIWhisperer-${{ steps.version.outputs.version }}-macos-${{ matrix.arch }}
+          path: dist/*.dmg
+          retention-days: 30
+
+  # Create a release with all DMGs when triggered by a tag
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: AIWhisperer-*
+
+      - name: List artifacts
+        run: |
+          find artifacts -type f -name "*.dmg" | while read f; do
+            echo "Found: $f"
+            ls -lh "$f"
+          done
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: artifacts/**/*.dmg
+          draft: true
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
