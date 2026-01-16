@@ -88,8 +88,10 @@ datas = [
 ]
 
 # Analysis
+# Use the entry_point.py script which uses absolute imports to avoid
+# "relative import with no known parent package" errors
 a = Analysis(
-    [str(project_root / 'aiwhisperer' / 'cli.py')],
+    [str(Path(SPECPATH) / 'entry_point.py')],
     pathex=[str(project_root)],
     binaries=[],
     datas=datas,
