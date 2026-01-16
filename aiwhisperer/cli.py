@@ -25,7 +25,21 @@ from .mapper import Mapping
 @click.group()
 @click.version_option(version=__version__)
 def cli():
-    """AIWhisperer - Complete pipeline for AI analysis of confidential documents."""
+    """AIWhisperer - PDF to text with optional sanitization for AI analysis.
+
+    TWO WORKFLOWS:
+
+    1. Non-confidential files (just convert PDF to text):
+
+       aiwhisperer convert document.pdf
+
+    2. Confidential files (convert + sanitize sensitive data):
+
+       aiwhisperer convert document.pdf --sanitize
+
+    The sanitization reduces the risk of exposing sensitive data when
+    uploading to cloud AI services.
+    """
     pass
 
 
@@ -209,22 +223,36 @@ def show_mapping(mapping_file):
 @click.option('--split/--no-split', default=False, help='Split into multiple files')
 @click.option('--max-pages', default=500, help='Max pages per file when splitting (default: 500)')
 @click.option('--info', is_flag=True, help='Just show PDF info, do not convert')
-def convert_cmd(pdf_file, output_dir, backend, split, max_pages, info):
+@click.option('--sanitize', is_flag=True, help='Also sanitize the output (for confidential files)')
+@click.option('-l', '--language', default='nl',
+              help='Language for sanitization: nl, en, de, fr, it, es (default: nl)')
+@click.option('--legend/--no-legend', default=True, help='Add legend header when sanitizing (default: on)')
+def convert_cmd(pdf_file, output_dir, backend, split, max_pages, info, sanitize, language, legend):
     """
     Convert PDF to text with OCR support.
 
-    Handles both native PDFs and scanned documents.
-    Uses marker-pdf (best accuracy) or pytesseract (fallback).
+    TWO WORKFLOWS:
 
-    Examples:
+    1. Non-confidential files (just convert):
 
         aiwhisperer convert document.pdf
+
+    2. Confidential files (convert + sanitize):
+
+        aiwhisperer convert document.pdf --sanitize
+
+    The --sanitize flag detects and replaces sensitive data (names, places,
+    emails, phones, etc.) creating a mapping file to restore them later.
+
+    More examples:
 
         aiwhisperer convert document.pdf -o ./output/
 
         aiwhisperer convert document.pdf --backend marker
 
         aiwhisperer convert large.pdf --split --max-pages 500
+
+        aiwhisperer convert document.pdf --sanitize -l en
 
         aiwhisperer convert document.pdf --info
     """
@@ -267,7 +295,7 @@ def convert_cmd(pdf_file, output_dir, backend, split, max_pages, info):
             max_pages_per_file=max_pages,
         )
 
-        click.echo(f"\nDone!")
+        click.echo(f"\nConversion done!")
         click.echo(f"Converter used: {metadata.get('converter', 'unknown')}")
         if 'total_pages' in metadata:
             click.echo(f"Pages: {metadata['total_pages']} ({metadata.get('native_pages', 0)} native, {metadata.get('ocr_pages', 0)} OCR)")
@@ -275,7 +303,37 @@ def convert_cmd(pdf_file, output_dir, backend, split, max_pages, info):
             click.echo(f"Output: {metadata['output_file']}")
         click.echo(f"Text length: {len(text):,} characters")
 
-        click.echo(f"\nNext step: aiwhisperer encode {metadata.get('output_file', pdf_path.stem + '.txt')}")
+        # If sanitize flag is set, run encoding on the converted text
+        if sanitize:
+            click.echo(f"\n--- Sanitizing (language: {language}) ---")
+
+            sanitized_text, mapping_obj = encode(text, backend='hybrid', strategy='replace', language=language)
+
+            # Add legend header if requested
+            if legend:
+                legend_text = generate_legend(mapping_obj)
+                sanitized_text = legend_text + sanitized_text
+
+            # Save sanitized output
+            output_file = Path(metadata.get('output_file', pdf_path.stem + '.txt'))
+            sanitized_file = output_file.parent / (output_file.stem + '_sanitized.txt')
+            mapping_file = output_file.parent / (output_file.stem + '_mapping.json')
+
+            with open(sanitized_file, 'w', encoding='utf-8') as f:
+                f.write(sanitized_text)
+            mapping_obj.save(str(mapping_file))
+
+            click.echo(f"Sanitized: {sanitized_file}")
+            click.echo(f"Mapping:   {mapping_file}")
+            click.echo(f"Entities:  {len(mapping_obj.entries)} unique values replaced")
+            if legend:
+                click.echo("Legend:    Included (helps AI understand placeholders)")
+
+            click.echo(f"\nWorkflow complete! Upload {sanitized_file} to your AI.")
+            click.echo(f"Then decode the AI output: aiwhisperer decode ai_output.txt -m {mapping_file}")
+        else:
+            click.echo(f"\nNext step: aiwhisperer encode {metadata.get('output_file', pdf_path.stem + '.txt')}")
+            click.echo(f"Or for confidential files, use: aiwhisperer convert {pdf_file} --sanitize")
 
     except ImportError as e:
         click.echo(f"\nError: {e}")
