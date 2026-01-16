@@ -8,7 +8,7 @@ long_description = readme.read_text(encoding="utf-8") if readme.exists() else ""
 
 setup(
     name="aiwhisperer",
-    version="0.4.0",
+    version="0.5.0",
     description="Shrink massive PDFs to fit AI upload limits. Sanitize before uploading to reduce risk of exposing sensitive data.",
     long_description=long_description,
     long_description_content_type="text/markdown",

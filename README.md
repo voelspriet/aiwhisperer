@@ -2,7 +2,7 @@
 
 [![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
 [![License: CC0](https://img.shields.io/badge/license-CC0-green.svg)](https://creativecommons.org/publicdomain/zero/1.0/)
-[![Version](https://img.shields.io/badge/version-0.4.0-orange.svg)](https://github.com/voelspriet/aiwhisperer/releases)
+[![Version](https://img.shields.io/badge/version-0.5.0-orange.svg)](https://github.com/voelspriet/aiwhisperer/releases)
 
 **Whisper your documents to AI—with reduced risk of exposing sensitive data.**
 
@@ -160,29 +160,34 @@ Language Models:
 
 ### Command Line
 
+**Two workflows:**
+
 ```bash
-# Step 1: Convert PDF to text (with OCR for scanned pages)
-# For large files, use --split to create multiple text files
-aiwhisperer convert investigation.pdf --split --max-pages 500
+# WORKFLOW 1: Non-confidential files (just convert)
+aiwhisperer convert document.pdf
 
-# Creates: investigation_part1.txt, investigation_part2.txt, etc.
+# WORKFLOW 2: Confidential files (convert + sanitize in one step)
+aiwhisperer convert document.pdf --sanitize
+```
 
-# Step 2: Sanitize each text file (use same mapping across all)
-aiwhisperer encode investigation_part1.txt --legend
-aiwhisperer encode investigation_part2.txt --legend -m investigation_part1_mapping.json
+**Full workflow for large confidential files:**
+
+```bash
+# Step 1: Convert and sanitize (with split for large files)
+aiwhisperer convert investigation.pdf --split --max-pages 500 --sanitize
 
 # Creates:
+#   investigation_part1.txt            ← Plain text
 #   investigation_part1_sanitized.txt  ← Send to AI
-#   investigation_part2_sanitized.txt  ← Send to AI
 #   investigation_part1_mapping.json   ← Keep this LOCAL
 
 # IMPORTANT: Check sanitized files before uploading!
 # Make sure no sensitive data slipped through.
 
-# Step 3: Upload all sanitized files to NotebookLM
+# Step 2: Upload sanitized files to NotebookLM
 #         Ask AI to build timeline, find patterns, etc.
 
-# Step 4: Save AI output, then decode back to real names
+# Step 3: Save AI output, then decode back to real names
 aiwhisperer decode ai_analysis.txt -m investigation_part1_mapping.json
 
 # Result: Full analysis with real names restored

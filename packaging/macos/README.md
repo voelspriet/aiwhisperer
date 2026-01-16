@@ -77,7 +77,7 @@ The repository includes a GitHub Actions workflow that automatically builds DMGs
 ### Triggering a Build
 
 1. **Manual trigger**: Go to Actions > "Build macOS DMG" > "Run workflow"
-2. **Tag release**: Push a version tag (e.g., `v0.3.0`) to trigger a build and create a draft release
+2. **Tag release**: Push a version tag (e.g., `v0.5.0`) to trigger a build and create a draft release
 3. **Pull request**: Changes to relevant files will trigger a test build
 
 ### Downloading Artifacts
