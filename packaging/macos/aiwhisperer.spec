@@ -13,7 +13,9 @@ import sys
 from pathlib import Path
 
 # Get the project root directory
-project_root = Path(SPECPATH).parent.parent.parent
+# SPECPATH is the directory containing this spec file (packaging/macos/)
+# So we need to go up 2 levels to reach the project root
+project_root = Path(SPECPATH).parent.parent
 
 block_cipher = None
 
