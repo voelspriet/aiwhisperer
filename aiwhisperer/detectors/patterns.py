@@ -29,6 +29,8 @@ PHONE_PATTERNS = [
     # === BELGIAN ===
     # Belgian landline: 052/26.08.60, 03/217.81.11
     (r'\b0\d{1,2}[/.\s]\d{2,3}[/.\s]\d{2}[/.\s]\d{2}\b', 'BE_LANDLINE'),
+    # Belgian landline international: +32 3 217 84 30, +32 2 123 45 67 (major cities)
+    (r'\+32\s+[2-9]\s+\d{3}\s+\d{2}\s+\d{2}', 'BE_LANDLINE_INTL'),
     # Belgian mobile international: 32489667088, +32 489 66 70 88
     (r'\+?32\s?\d{9}', 'BE_MOBILE'),
     (r'\+?32\s?\d{3}\s?\d{2}\s?\d{2}\s?\d{2}', 'BE_MOBILE'),
@@ -1051,9 +1053,10 @@ LOCATION_MARKERS = [
     (r'\bt\.?h\.?v\.?\s+([A-Z][a-zA-Zé\-]+)', 'thv'),
     (r'\bter hoogte van\s+([A-Z][a-zA-Zé\-]+)', 'thv'),
     # Belgian postal code + place: "2990 Wuustwezel", "9000 Gent"
-    (r'\b\d{4}\s+([A-Z][a-zA-Zé\-]+)\b', 'postalcode_be'),
+    # Use [ ] instead of \s to avoid matching across newlines (prevents IBAN + newline + word false positives)
+    (r'\b\d{4}[ ]+([A-Z][a-zA-Zé\-]+)\b', 'postalcode_be'),
     # Dutch postal code + place: "1234 AB Amsterdam"
-    (r'\b\d{4}\s*[A-Z]{2}\s+([A-Z][a-zA-Zé\-]+)\b', 'postalcode_nl'),
+    (r'\b\d{4}[ ]*[A-Z]{2}[ ]+([A-Z][a-zA-Zé\-]+)\b', 'postalcode_nl'),
     # Reverse: place + postal code (common in cell tower data): "WUUSTWEZEL 2990"
     (r'\b([A-Z]{3,})\s+\d{4}\b', 'place_postalcode'),
     # "richting [place]" case-insensitive: "richting breda", "richting ANTWERPEN"
@@ -1166,6 +1169,10 @@ def detect_any_street(text: str) -> List[Match]:
         'zwemvest', 'reddingsvest', 'kogelvrijevest',
         # -markt words
         'arbeidsmarkt', 'huizenmarkt', 'woningmarkt', 'aandelenmarkt', 'obligatiemarkt',
+        # -plaats words (residence/location terms, not street names)
+        'verblijfplaats', 'woonplaats', 'geboorteplaats', 'werkplaats', 'vindplaats',
+        'bergplaats', 'bewaarplaats', 'opslagplaats', 'parkeerplaats', 'zitplaats',
+        'standplaats', 'ligplaats', 'rustplaats', 'slaapplaats', 'speelplaats',
         # other
         'rechtbank', 'vooruitgang', 'achteruitgang',
     }
